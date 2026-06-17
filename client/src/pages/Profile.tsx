@@ -1,4 +1,7 @@
+import { useOverlay } from "../contexts/OverlayContext";
+
 export default function Profile() {
+  const { open } = useOverlay();
   return (
     <div>
       {/* 用户头像区 — 参考设计 */}
@@ -9,7 +12,7 @@ export default function Profile() {
         >
           I
         </div>
-        <div style={{ fontSize: "15px", fontWeight: "500" }}>Intellivis</div>
+        <div style={{ fontSize: "15px", fontWeight: 500 }}>Intellivis</div>
         <div className="text-[11px] text-[#8A8A8E]" style={{ marginTop: "2px" }}>知识雷达用户</div>
       </div>
 
@@ -18,7 +21,7 @@ export default function Profile() {
         <div
           className="flex items-center justify-between text-[13px] cursor-pointer"
           style={{ padding: "12px 0", borderBottom: "0.5px solid #F2F2F7" }}
-          onClick={() => (window as any).__showSourceOverlay?.()}
+          onClick={() => open("sources")}
         >
           <span>公众号池管理</span>
           <span className="text-[#C7C7CC]">›</span>
@@ -26,7 +29,7 @@ export default function Profile() {
         <div
           className="flex items-center justify-between text-[13px] cursor-pointer"
           style={{ padding: "12px 0", borderBottom: "0.5px solid #F2F2F7" }}
-          onClick={() => (window as any).__showKeywordOverlay?.()}
+          onClick={() => open("keywords")}
         >
           <span>关键词设置</span>
           <span className="text-[#C7C7CC]">›</span>
@@ -34,7 +37,7 @@ export default function Profile() {
         <div
           className="flex items-center justify-between text-[13px] cursor-pointer"
           style={{ padding: "12px 0", borderBottom: "0.5px solid #F2F2F7" }}
-          onClick={() => (window as any).__showAIConfigOverlay?.()}
+          onClick={() => open("aiConfig")}
         >
           <span>大模型自定义配置</span>
           <span className="text-[#C7C7CC]">›</span>

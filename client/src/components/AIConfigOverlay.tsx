@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const STORAGE_KEY = "knowledge_radar_ai_config";
 
@@ -12,7 +12,9 @@ function loadConfig(): AIConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch {
+    // 忽略 localStorage 读取错误，使用默认配置
+  }
   return { baseUrl: "https://api.deepseek.com/v1", apiKey: "", model: "deepseek-chat" };
 }
 
@@ -31,18 +33,15 @@ const PRESET_MODELS = [
 
 export default function AIConfigOverlay({ onClose }: { onClose: () => void }) {
   const [config, setConfig] = useState<AIConfig>(loadConfig);
-  const [selectedPreset, setSelectedPreset] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok?: boolean; message?: string } | null>(null);
-
-  useEffect(() => {
-    // 判断当前配置匹配哪个预设
+  const [selectedPreset, setSelectedPreset] = useState(() => {
     const match = PRESET_MODELS.find(
       (p) => p.baseUrl === config.baseUrl && (p.value === config.model || p.value === "")
     );
-    setSelectedPreset(match?.label || "自定义");
-  }, []);
+    return match?.label || "自定义";
+  });
+  const [showKey, setShowKey] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok?: boolean; message?: string } | null>(null);
 
   const handlePreset = (preset: (typeof PRESET_MODELS)[number]) => {
     setSelectedPreset(preset.label);
@@ -180,12 +179,12 @@ export default function AIConfigOverlay({ onClose }: { onClose: () => void }) {
                       message: `服务器返回非 JSON (${resp.status}): ${text.slice(0, 50)}`,
                     });
                   }
-                } catch (e: any) {
+                } catch (e: unknown) {
                   setTestResult({
                     ok: false,
-                    message: e.message === "Failed to fetch"
+                    message: e instanceof Error && e.message === "Failed to fetch"
                       ? "后端服务未启动，请在 server 目录运行 python main.py"
-                      : (e.message || "未知错误"),
+                      : (e instanceof Error ? e.message : "未知错误"),
                   });
                 } finally {
                   setTesting(false);

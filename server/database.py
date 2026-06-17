@@ -97,12 +97,15 @@ async def fetchall(db, sql, params=None):
 
 
 async def run_migrations(db):
-    """执行增量迁移，忽略列已存在的错误"""
+    """执行增量迁移，仅对"列已存在"静默，其他错抛出"""
+    import sqlite3
     for migration in MIGRATIONS:
         try:
             await db.execute(migration)
-        except Exception:
-            pass  # 列已存在
+        except sqlite3.OperationalError as e:
+            # "duplicate column name" 表示列已存在，静默
+            if "duplicate column" not in str(e).lower():
+                raise
     await db.commit()
 
 

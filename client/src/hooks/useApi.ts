@@ -7,11 +7,13 @@ import {
   MOCK_SUGGESTIONS,
 } from "../mock-data";
 
-const API_KEY = "radar-dev-key";
+// API Key 不再硬编码到前端包 — 浏览器侧只读公开数据，敏感写操作由网关/同源后端保护。
+// 保留常量为向后兼容的注释；前端不会发送 X-API-Key。
+const API_KEY = ""; // 故意留空，详见 server/auth.py
 const USE_MOCK = false; // 设为 false 连接真实后端
 
 // Mock 帮助函数
-let mockArticles = [...MOCK_ARTICLES];
+const mockArticles = [...MOCK_ARTICLES];
 let mockSources = [...MOCK_SOURCES];
 let mockKeywords = [...MOCK_KEYWORDS];
 
@@ -25,13 +27,19 @@ function getMockData<T>(url: string): T {
   // GET /api/search/suggestions
   if (url === "/api/search/suggestions") return MOCK_SUGGESTIONS as T;
   // GET /api/articles
+  // 注意：时间窗口过滤只在 MOCK 模式下由前端做；接真实后端时由 server 端按 published_at 过滤。
   if (url.startsWith("/api/articles?")) {
     const params = new URLSearchParams(url.split("?")[1]);
     let result = [...mockArticles];
     if (params.get("status") === "unread") result = result.filter((a) => !a.is_read);
-    if (params.get("time") === "today") result = result.filter((a) => Date.now() - new Date(a.published_at || "").getTime() < 86400000);
-    if (params.get("time") === "7d") result = result.filter((a) => Date.now() - new Date(a.published_at || "").getTime() < 7 * 86400000);
-    if (params.get("time") === "30d") result = result.filter((a) => Date.now() - new Date(a.published_at || "").getTime() < 30 * 86400000);
+    if (params.get("time")) {
+      const dayMap: Record<string, number> = { today: 1, "3d": 3, "7d": 7, "30d": 30 };
+      const days = dayMap[params.get("time")!] ?? 0;
+      if (days > 0) {
+        const cutoff = Date.now() - days * 86400000;
+        result = result.filter((a) => new Date(a.published_at || 0).getTime() >= cutoff);
+      }
+    }
     if (params.get("source_id")) {
       const ids = params.get("source_id")!.split(",").map(Number);
       result = result.filter((a) => ids.includes(a.source_id));
@@ -42,7 +50,7 @@ function getMockData<T>(url: string): T {
   if (url.startsWith("/api/search?")) {
     const params = new URLSearchParams(url.split("?")[1]);
     const q = (params.get("q") || "").toLowerCase();
-    let result = mockArticles.filter(
+    const result = mockArticles.filter(
       (a) =>
         a.title.toLowerCase().includes(q) ||
         (a.summary || "").toLowerCase().includes(q) ||
@@ -154,11 +162,13 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     return [] as T;
   }
 
+  // 同源部署时浏览器自动带 cookie；非同源由网关注入鉴权头。
+  // 故意不在前端发 X-API-Key：详见 server/auth.py。
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-API-Key": API_KEY,
     ...(options?.headers as Record<string, string>),
   };
+  if (API_KEY) headers["X-API-Key"] = API_KEY;
 
   const resp = await fetch(url, { ...options, headers });
 

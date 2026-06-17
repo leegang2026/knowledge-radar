@@ -40,7 +40,7 @@ export default function KeywordManageOverlay({ onClose }: { onClose: () => void 
       kws.forEach((kw) => { t[kw.name] = kw.relevance_threshold; });
       setThresholds(t);
     });
-  }, []);
+  }, [api]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("确认移除此关键词？")) return;

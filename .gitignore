@@ -33,3 +33,7 @@ server/test.db
 
 # Deploy
 deploy.tar.gz
+
+# Temporary
+tmp/
+.workbuddy/

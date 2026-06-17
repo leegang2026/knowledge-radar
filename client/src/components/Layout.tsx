@@ -1,8 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
 import KeywordManageOverlay from "./KeywordManageOverlay";
 import SourcePoolOverlay from "./SourcePoolOverlay";
 import AIConfigOverlay from "./AIConfigOverlay";
+import { useOverlay } from "../contexts/OverlayContext";
 
 const NAV_ITEMS = [
   { to: "/", label: "雷达", icon: "📡" },
@@ -13,21 +13,7 @@ const NAV_ITEMS = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [showKeywords, setShowKeywords] = useState(false);
-  const [showSources, setShowSources] = useState(false);
-  const [showAIConfig, setShowAIConfig] = useState(false);
-
-  // Expose overlay controls globally for cross-page access
-  useEffect(() => {
-    (window as any).__showKeywordOverlay = () => setShowKeywords(true);
-    (window as any).__showSourceOverlay = () => setShowSources(true);
-    (window as any).__showAIConfigOverlay = () => setShowAIConfig(true);
-    return () => {
-      delete (window as any).__showKeywordOverlay;
-      delete (window as any).__showSourceOverlay;
-      delete (window as any).__showAIConfigOverlay;
-    };
-  }, []);
+  const { active, close } = useOverlay();
 
   const tabIndex = NAV_ITEMS.findIndex((item) =>
     item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
@@ -75,16 +61,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      {/* 全局 Overlay — 覆盖整个卡片 */}
-      {showKeywords && (
-        <KeywordManageOverlay onClose={() => setShowKeywords(false)} />
-      )}
-      {showSources && (
-        <SourcePoolOverlay onClose={() => setShowSources(false)} />
-      )}
-      {showAIConfig && (
-        <AIConfigOverlay onClose={() => setShowAIConfig(false)} />
-      )}
+      {/* 全局 Overlay — 由 OverlayContext 控制 */}
+      {active === "keywords" && <KeywordManageOverlay onClose={close} />}
+      {active === "sources" && <SourcePoolOverlay onClose={close} />}
+      {active === "aiConfig" && <AIConfigOverlay onClose={close} />}
     </>
   );
 }

@@ -45,7 +45,7 @@ export default function Panel() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, timeFilter, selectedSourceIds]);
+  }, [api, statusFilter, timeFilter, selectedSourceIds]);
 
   useEffect(() => {
     fetchData();

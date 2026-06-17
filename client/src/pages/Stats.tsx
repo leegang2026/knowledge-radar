@@ -40,7 +40,7 @@ export default function Stats() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [api]);
 
   const totalArticles = stats.reduce((sum, s) => sum + s.hit_count, 0);
   const sorted = [...stats].sort((a, b) => b.hit_count - a.hit_count);

@@ -1,7 +1,6 @@
 """定时任务：RSS/Web 抓取 → AI 预筛选 → 入库"""
 
 import hashlib
-from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException
 
 from database import get_db, fetchone, fetchall
@@ -54,20 +53,21 @@ async def cron_fetch_all(request: Request):
             if not fetch_url:
                 continue
 
-            # 检查抓取频率：是否到了该抓取的时间
+            # 抓取频率：距离上次抓取是否超过频率（用 SQL 计算时间差，避开 Python/SQLite 时区漂移）
             freq = source.get("fetch_frequency_minutes", 480)  # 默认 8 小时
-            now = datetime.now(timezone.utc).isoformat()
-            last = source.get("last_fetched_at")
-            if last:
-                # 简单比较：距离上次抓取是否超过频率
-                try:
-                    from datetime import datetime as dt
-                    last_dt = dt.fromisoformat(last)
-                    delta = (dt.now(timezone.utc) - last_dt).total_seconds() / 60
-                    if delta < freq:
-                        continue  # 未到抓取时间
-                except Exception:
-                    pass
+            # freq>0 才做频率控制；freq<=0 视为"立即抓取"，常用于首次激活
+            if freq > 0:
+                freq_check = await fetchone(db,
+                    """SELECT 1 FROM sources
+                       WHERE id = ?
+                         AND (
+                           last_fetched_at IS NULL
+                           OR (julianday('now') - julianday(last_fetched_at)) * 24 * 60 >= ?
+                         )""",
+                    [source["id"], freq],
+                )
+                if not freq_check:
+                    continue  # 未到抓取时间
 
             # 从信息源拉取文章
             try:

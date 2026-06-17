@@ -6,8 +6,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db
+from auth import AUTH_ENABLED
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+# CORS：默认允许同源 + 本地开发端口（Vite 5173）；生产环境通过环境变量显式配置
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite dev
+    "http://127.0.0.1:5173",
+    "http://localhost:3001",  # 本地后端静态托管
+    "http://127.0.0.1:3001",
+]
+ALLOWED_ORIGINS = os.getenv("RADAR_ALLOWED_ORIGINS")  # 逗号分隔
+PROD = os.getenv("RADAR_PROD") == "1"
+
+if PROD and ALLOWED_ORIGINS:
+    origins = [o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()]
+elif PROD:
+    # 生产模式但未配置允许来源 — 锁死为空（只允许同源）
+    origins = []
+else:
+    origins = DEFAULT_ALLOWED_ORIGINS
 
 
 @asynccontextmanager
@@ -19,10 +38,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="知识雷达 API", version="1.0", lifespan=lifespan)
 
-# CORS — 开发环境允许任意来源
+# CORS — 生产按白名单，开发允许本地端口
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

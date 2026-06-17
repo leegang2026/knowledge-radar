@@ -25,11 +25,11 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     fetchSources();
-  }, []);
+  }, [fetchSources]);
 
   const filtered = sources.filter((s) => {
     if (filter === "active" && s.status !== "active") return false;
@@ -253,7 +253,7 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
         {filtered.length === 0 ? (
           <div className="text-center text-[13px] text-[#C7C7CC]" style={{ padding: "40px 0" }}>没有匹配的公众号</div>
         ) : (
-          filtered.map((s, i) => {
+          filtered.map((s) => {
             const idx = sources.indexOf(s);
             const isWarn = s.status !== "active";
             return (

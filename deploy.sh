@@ -33,7 +33,7 @@ tar -czf deploy.tar.gz \
     server/ai_processor.py \
     server/fetcher.py \
     server/requirements.txt \
-    server/.env \
+    server/.env.example \
     server/routes/ \
     server/static/
 

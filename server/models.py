@@ -8,6 +8,7 @@ class SourceCreate(BaseModel):
     name: str
     wechat_id: Optional[str] = None
     description: Optional[str] = None
+    url: Optional[str] = None
     fetch_url: Optional[str] = None
     fetch_frequency_minutes: Optional[int] = 480
 

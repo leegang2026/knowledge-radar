@@ -23,15 +23,16 @@ export default function Search() {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
 
-  useEffect(() => { fetchSuggestions(); }, []);
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     try {
       const s = await api.get<SearchSuggestion[]>("/api/search/suggestions");
       if (s && s.length > 0) setSuggestions(s);
     } catch {
       // use defaults
     }
-  };
+  }, [api]);
+
+  useEffect(() => { fetchSuggestions(); }, [fetchSuggestions]);
 
   const allSuggestions =
     suggestions.length > 0
@@ -54,7 +55,7 @@ export default function Search() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [api]);
 
   const toggleRead = async (id: number) => {
     try {
