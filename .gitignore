@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+client/node_modules/
+
+# Build output
+client/dist/
+server/static/
+server/__pycache__/
+server/routes/__pycache__/
+
+# Environment
+server/.env
+!server/.env.example
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+server/server.log
+
+# Database
+server/*.db
+server/test.db
+
+# Deploy
+deploy.tar.gz
