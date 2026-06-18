@@ -62,6 +62,12 @@ CREATE TABLE IF NOT EXISTS search_history (
     searched_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source_id);
 CREATE INDEX IF NOT EXISTS idx_articles_is_read ON articles(is_read);
 CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);

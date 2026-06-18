@@ -23,14 +23,23 @@ async def list_articles(
         params = []
 
         # 关键词筛选
-        select_relevance = ""
+        select_relevance = """(
+            SELECT ak.relevance_score FROM article_keywords ak
+            WHERE ak.article_id = a.id LIMIT 1
+          ) as relevance_score,
+          (
+            SELECT ak.keyword_id FROM article_keywords ak
+            WHERE ak.article_id = a.id LIMIT 1
+          ) as keyword_id,
+          (
+            SELECT k.name FROM article_keywords ak
+            JOIN keywords k ON k.id = ak.keyword_id
+            WHERE ak.article_id = a.id LIMIT 1
+          ) as keyword_name"""
         if keyword_id:
-            conditions.append("ak.keyword_id = ?")
+            conditions.append("EXISTS (SELECT 1 FROM article_keywords ak2 WHERE ak2.article_id = a.id AND ak2.keyword_id = ?)")
             params.append(keyword_id)
-            join_clause = "JOIN article_keywords ak ON ak.article_id = a.id"
-            select_relevance = ", ak.relevance_score as relevance_score"
-        else:
-            join_clause = ""
+        join_clause = ""
 
         # 阅读状态
         if status == "unread":
@@ -64,7 +73,8 @@ async def list_articles(
 
         # 数据 — 未读在上，同状态按时间倒序
         order = "a.is_read ASC, a.published_at DESC"
-        data_sql = f"""SELECT a.*, s.name as source_name{select_relevance}
+        data_sql = f"""SELECT a.*, s.name as source_name,
+                {select_relevance}
                 FROM articles a
                 LEFT JOIN sources s ON s.id = a.source_id
                 {join_clause}

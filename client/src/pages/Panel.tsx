@@ -145,7 +145,7 @@ export default function Panel() {
               key={a.id}
               article={a}
               onToggleRead={toggleRead}
-              onClickDetail={(id) => setDetailId(id)}
+              onClickDetail={(id) => { setDetailId(id); toggleRead(id); }}
             />
           ))
         )}

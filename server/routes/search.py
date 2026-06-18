@@ -60,8 +60,11 @@ async def search_articles(
         search_params = [f"%{q}%", f"%{q}%"]
         all_params = params + search_params + [limit, offset]
 
-        rows = await fetchall(db, 
-            f"""SELECT a.*, s.name as source_name
+        rows = await fetchall(db,
+            f"""SELECT a.*, s.name as source_name,
+                (SELECT ak.relevance_score FROM article_keywords ak WHERE ak.article_id = a.id LIMIT 1) as relevance_score,
+                (SELECT ak.keyword_id FROM article_keywords ak WHERE ak.article_id = a.id LIMIT 1) as keyword_id,
+                (SELECT k.name FROM article_keywords ak JOIN keywords k ON k.id = ak.keyword_id WHERE ak.article_id = a.id LIMIT 1) as keyword_name
                 FROM articles a
                 LEFT JOIN sources s ON s.id = a.source_id
                 {where}
@@ -70,11 +73,7 @@ async def search_articles(
             all_params,
         )
 
-        articles = []
-        for r in rows:
-            d = dict(r)
-            d.setdefault("relevance_score", None)
-            articles.append(d)
+        articles = [dict(r) for r in rows]
 
         # 记录搜索历史
         await db.execute(

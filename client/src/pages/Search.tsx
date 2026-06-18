@@ -152,7 +152,7 @@ export default function Search() {
                 article={a}
                 searchQuery={query}
                 onToggleRead={toggleRead}
-                onClickDetail={(id) => setDetailId(id)}
+                onClickDetail={(id) => { setDetailId(id); toggleRead(id); }}
               />
             ))}
           </>

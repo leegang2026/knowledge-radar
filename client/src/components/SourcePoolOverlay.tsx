@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useApi } from "../hooks/useApi";
 import { Source } from "../types";
 
@@ -17,6 +17,9 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
   const [batchText, setBatchText] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newSourceUrl, setNewSourceUrl] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editFetchUrl, setEditFetchUrl] = useState("");
+  const [editFreq, setEditFreq] = useState(480);
 
   const fetchSources = useCallback(async () => {
     try {
@@ -92,6 +95,26 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
     if (!confirm(`确认将「${name}」移出公众号池？`)) return;
     try {
       await api.delete(`/api/sources/${id}`);
+      fetchSources();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const startEdit = (s: Source) => {
+    setEditingId(s.id);
+    setEditFetchUrl(s.fetch_url || s.url || "");
+    setEditFreq(s.fetch_frequency_minutes || 480);
+  };
+
+  const saveEdit = async () => {
+    if (editingId == null) return;
+    try {
+      await api.put(`/api/sources/${editingId}`, {
+        fetch_url: editFetchUrl || undefined,
+        fetch_frequency_minutes: editFreq,
+      });
+      setEditingId(null);
       fetchSources();
     } catch (e) {
       console.error(e);
@@ -257,6 +280,7 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
             const idx = sources.indexOf(s);
             const isWarn = s.status !== "active";
             return (
+              <React.Fragment key={s.id}>
               <div
                 key={s.id}
                 className="flex items-center"
@@ -296,14 +320,52 @@ export default function SourcePoolOverlay({ onClose }: { onClose: () => void }) 
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => handleDelete(s.id, s.name)}
-                  className="text-xs cursor-pointer bg-transparent border-0 rounded text-[#FF3B30]"
-                  style={{ padding: "4px 8px" }}
-                >
-                  移除
-                </button>
+                <div className="flex flex-col" style={{ gap: "2px" }}>
+                  <button
+                    onClick={() => startEdit(s)}
+                    className="text-xs cursor-pointer bg-transparent border-0 rounded text-[#07C160]"
+                    style={{ padding: "4px 8px" }}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id, s.name)}
+                    className="text-xs cursor-pointer bg-transparent border-0 rounded text-[#FF3B30]"
+                    style={{ padding: "4px 8px" }}
+                  >
+                    移除
+                  </button>
+                </div>
               </div>
+              {editingId === s.id && (
+                <div className="bg-[#F9F9FB] rounded-lg p-2" style={{ marginBottom: "8px", border: "0.5px solid #E5E5E5" }}>
+                  <input
+                    className="w-full border rounded px-2 py-[5px] text-[12px] outline-none mb-[4px]"
+                    style={{ borderColor: "#E5E5E5", borderWidth: "0.5px" }}
+                    placeholder="RSS/网页地址（https://...）"
+                    value={editFetchUrl}
+                    onChange={(e) => setEditFetchUrl(e.target.value)}
+                  />
+                  <div className="flex items-center" style={{ gap: "4px", marginBottom: "4px" }}>
+                    <span className="text-[10px] text-[#8A8A8E] shrink-0">抓取间隔</span>
+                    <select
+                      value={editFreq}
+                      onChange={(e) => setEditFreq(Number(e.target.value))}
+                      className="text-[11px] border rounded px-1 py-[3px] outline-none"
+                      style={{ borderColor: "#E5E5E5", borderWidth: "0.5px" }}
+                    >
+                      {[120, 360, 480, 720, 1440].map((v) => (
+                        <option key={v} value={v}>{v >= 60 ? `每${Math.round(v / 60)}小时` : `${v}分钟`}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex justify-end" style={{ gap: "4px" }}>
+                    <button onClick={() => setEditingId(null)} className="text-[10px] cursor-pointer bg-[#F2F2F7] border-0 rounded px-2 py-1">取消</button>
+                    <button onClick={saveEdit} className="text-[10px] cursor-pointer bg-[#07C160] text-white border-0 rounded px-2 py-1">保存</button>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
             );
           })
         )}

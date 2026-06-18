@@ -4,6 +4,35 @@ import json
 import os
 import httpx
 
+
+def _default_ai_config():
+    """读取环境变量默认值"""
+    return {
+        "base_url": os.getenv("RADAR_AI_BASE_URL", "https://api.deepseek.com/v1"),
+        "api_key": os.getenv("RADAR_AI_API_KEY", ""),
+        "model": os.getenv("RADAR_AI_MODEL", "deepseek-chat"),
+    }
+
+
+async def _get_ai_config():
+    """优先从数据库读取 AI 配置，未配置时回退到环境变量"""
+    from database import get_db, fetchone
+    db = await get_db()
+    try:
+        row = await fetchone(db, "SELECT value FROM settings WHERE key = 'ai_api_key'")
+        if row and row["value"]:
+            base = await fetchone(db, "SELECT value FROM settings WHERE key = 'ai_base_url'")
+            model = await fetchone(db, "SELECT value FROM settings WHERE key = 'ai_model'")
+            return {
+                "base_url": (base["value"] if base else "") or _default_ai_config()["base_url"],
+                "api_key": row["value"],
+                "model": (model["value"] if model else "") or _default_ai_config()["model"],
+            }
+        return _default_ai_config()
+    finally:
+        await db.close()
+
+
 AI_BASE_URL = os.getenv("RADAR_AI_BASE_URL", "https://api.deepseek.com/v1")
 AI_API_KEY = os.getenv("RADAR_AI_API_KEY", "")
 AI_MODEL = os.getenv("RADAR_AI_MODEL", "deepseek-chat")
@@ -68,18 +97,19 @@ SUMMARY_PROMPT = """你是一个专业的信息提炼助手。请根据文章内
 
 async def _call_ai(system_prompt: str, user_content: str, max_tokens: int = 300) -> str:
     """调用 OpenAI 兼容接口"""
-    if not AI_API_KEY:
-        raise RuntimeError("未配置 RADAR_AI_API_KEY 环境变量")
+    config = await _get_ai_config()
+    if not config["api_key"]:
+        raise RuntimeError("未配置 AI API Key，请在前端「大模型自定义配置」中设置或配置服务器环境变量 RADAR_AI_API_KEY")
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            f"{AI_BASE_URL}/chat/completions",
+            f"{config['base_url']}/chat/completions",
             headers={
-                "Authorization": f"Bearer {AI_API_KEY}",
+                "Authorization": f"Bearer {config['api_key']}",
                 "Content-Type": "application/json",
             },
             json={
-                "model": AI_MODEL,
+                "model": config["model"],
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},

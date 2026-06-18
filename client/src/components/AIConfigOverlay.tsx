@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "knowledge_radar_ai_config";
 
@@ -43,6 +43,27 @@ export default function AIConfigOverlay({ onClose }: { onClose: () => void }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok?: boolean; message?: string } | null>(null);
 
+  // 从服务端同步配置（优先级高于 localStorage）
+  useEffect(() => {
+    fetch("/api/ai/config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.configured && data.base_url && data.model) {
+          const serverCfg = {
+            baseUrl: data.base_url,
+            apiKey: "", // 不暴露 key，保持本地值
+            model: data.model,
+          };
+          setConfig((prev) => ({
+            baseUrl: serverCfg.baseUrl || prev.baseUrl,
+            apiKey: prev.apiKey, // 保留本地 key
+            model: serverCfg.model || prev.model,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handlePreset = (preset: (typeof PRESET_MODELS)[number]) => {
     setSelectedPreset(preset.label);
     if (preset.value) {
@@ -54,9 +75,23 @@ export default function AIConfigOverlay({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     saveConfig(config);
-    alert("AI 配置已保存，下次抓取生效");
+    // 同步到服务端
+    try {
+      await fetch("/api/ai/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          base_url: config.baseUrl,
+          api_key: config.apiKey,
+          model: config.model,
+        }),
+      });
+      alert("AI 配置已保存，下次抓取生效");
+    } catch {
+      alert("AI 配置已保存到本地，但服务端同步失败（后端未启动？）\n抓取时将使用本地缓存配置");
+    }
     onClose();
   };
 

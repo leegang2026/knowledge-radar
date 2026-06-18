@@ -28,6 +28,10 @@ export default function KeywordManageOverlay({ onClose }: { onClose: () => void 
   // 快速添加信息源
   const [quickSourceName, setQuickSourceName] = useState("");
   const [quickSourceUrl, setQuickSourceUrl] = useState("");
+  // 编辑关键词
+  const [editKwId, setEditKwId] = useState<number | null>(null);
+  const [editKwName, setEditKwName] = useState("");
+  const [editKwDesc, setEditKwDesc] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -47,6 +51,25 @@ export default function KeywordManageOverlay({ onClose }: { onClose: () => void 
     try {
       await api.delete(`/api/keywords/${id}`);
       setKeywords((prev) => prev.filter((k) => k.id !== id));
+    } catch (e) { console.error(e); }
+  };
+
+  const startEditKw = (kw: Keyword) => {
+    setEditKwId(kw.id);
+    setEditKwName(kw.name);
+    setEditKwDesc(kw.description || "");
+  };
+
+  const saveEditKw = async () => {
+    if (editKwId == null) return;
+    try {
+      await api.put(`/api/keywords/${editKwId}`, {
+        name: editKwName.trim() || undefined,
+        description: editKwDesc.trim().slice(0, 100) || undefined,
+      });
+      setEditKwId(null);
+      const kws = await api.get<Keyword[]>("/api/keywords");
+      setKeywords(kws);
     } catch (e) { console.error(e); }
   };
 
@@ -108,14 +131,32 @@ export default function KeywordManageOverlay({ onClose }: { onClose: () => void 
               <div className="flex items-center" style={{ gap: "8px" }}>
                 <span className="rounded-full shrink-0" style={{ width: "8px", height: "8px", background: KEYWORD_DOTS[i % KEYWORD_DOTS.length] }} />
                 <div>
-                  <div className="text-[13px] font-medium">{kw.name}</div>
-                  {kw.description && <div className="text-[10px] text-[#8A8A8E] mt-0.5">{kw.description}</div>}
+                  {editKwId === kw.id ? (
+                    <div>
+                      <input className="w-full border rounded px-2 py-[4px] text-[13px] outline-none mb-1" style={{ borderColor: "#E5E5E5", borderWidth: "0.5px" }}
+                        placeholder="关键词名称" value={editKwName} onChange={(e) => setEditKwName(e.target.value)} maxLength={30} />
+                      <textarea className="w-full border rounded px-2 py-[4px] text-[11px] outline-none resize-none" style={{ borderColor: "#E5E5E5", borderWidth: "0.5px", height: "40px" }}
+                        placeholder="描述，≤100字" value={editKwDesc} onChange={(e) => setEditKwDesc(e.target.value)} maxLength={100} />
+                      <div className="flex" style={{ gap: "4px", marginTop: "4px" }}>
+                        <button onClick={() => setEditKwId(null)} className="text-[10px] cursor-pointer bg-[#F2F2F7] border-0 rounded px-2 py-1">取消</button>
+                        <button onClick={saveEditKw} className="text-[10px] cursor-pointer bg-[#07C160] text-white border-0 rounded px-2 py-1">保存</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-[13px] font-medium">{kw.name}</div>
+                      {kw.description && <div className="text-[10px] text-[#8A8A8E] mt-0.5">{kw.description}</div>}
+                    </>
+                  )}
                   <div className="text-[10px] text-[#8A8A8E]">
                     命中 {kw.hit_count_30d} 篇 · 追踪 {kw.tracking_count} 个公众号
                   </div>
                 </div>
               </div>
-              <button onClick={() => handleDelete(kw.id)} className="text-xs text-[#FF3B30] cursor-pointer bg-transparent border-0" style={{ padding: "4px 8px" }}>移除</button>
+              <div className="flex flex-col" style={{ gap: "2px" }}>
+                <button onClick={() => startEditKw(kw)} className="text-xs text-[#07C160] cursor-pointer bg-transparent border-0" style={{ padding: "4px 8px" }}>编辑</button>
+                <button onClick={() => handleDelete(kw.id)} className="text-xs text-[#FF3B30] cursor-pointer bg-transparent border-0" style={{ padding: "4px 8px" }}>移除</button>
+              </div>
             </div>
             <div className="flex items-center" style={{ gap: "8px" }}>
               <span className="text-[10px] text-[#8A8A8E]">阈值</span>

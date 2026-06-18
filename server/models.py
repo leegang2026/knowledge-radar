@@ -85,6 +85,8 @@ class ArticleResponse(BaseModel):
     fetched_at: str
     is_read: int
     relevance_score: Optional[float] = None
+    keyword_id: Optional[int] = None
+    keyword_name: Optional[str] = None
 
 
 class ArticleListResponse(BaseModel):

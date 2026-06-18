@@ -71,11 +71,12 @@ app.include_router(stats_router, prefix="/api")
 app.include_router(cron_router, prefix="/api")
 app.include_router(ai_test_router, prefix="/api")
 
-# 静态文件 — 仅在生产环境挂载（开发时由 Vite 提供前端）
-if os.path.isdir(STATIC_DIR) and os.getenv("RADAR_PROD") == "1":
+# 静态文件 — 生产环境（存在 index.html 即自动挂载；RADAR_PROD=1 显式开启）
+_prod_index = os.path.join(STATIC_DIR, "index.html")
+if os.path.isfile(_prod_index) or os.getenv("RADAR_PROD") == "1":
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=3001, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)

@@ -21,16 +21,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* 状态栏 — 匹配参考设计；手机端适配刘海屏 */}
-      <div className="flex justify-between text-[11px] font-medium text-[#8A8A8E]"
-        style={{
-          padding: "12px 18px 4px",
-          paddingTop: "max(12px, env(safe-area-inset-top))",
-        }}>
-        <span>9:41</span>
-        <span>📶 100%</span>
-      </div>
-
       {/* 主内容区 — flex-1 撑满空间，内容超出时滚动 */}
       <main className="flex-1 overflow-y-auto">
         {children}
